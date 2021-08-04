@@ -1,0 +1,83 @@
+#   Using dplyr functions (i.e., filter, mutate ,select, summarise, group_by etc. ) and "murder" dataset (available in dslab  R package) and write appropriate R syntax to answer the followings: 
+#a. Calculate regional total murder excluding the OH, AL, and AZ  
+#b. Display the regional population and regional murder numbers. 
+#c. How many states are there in each region?  
+#d. What is Ohio's murder rank in the Northern Central Region (Hint: use rank(), row_number()) 
+#e. How many states have murder number greater than its regional average.  
+#f. Display 2 least populated states in each region 
+
+
+
+
+
+
+library(tidyverse)
+library(dslabs)
+data("murders")
+murders <- mutate(murders, rate = total / population * 100000)
+head(murders)
+
+#Filter for murders lower than 0.71
+filter(murders, rate <= 0.71)
+#Selecting columns with select
+new_table <- select(murders, state, region, rate)
+filter(new_table, rate <= 0.71)
+#Advanced filter
+filter(murders, state %in% c("New York", "Texas"))
+#The pipe function
+murders %>% select(state, region, rate) %>% filter(rate <= 0.71)
+
+#Pipe filter
+mutate(murders, rate =  total / population * 100000, 
+       rank = rank(-rate)) %>%
+  select(state, rate, rank)
+
+#Calcularte the averages
+s <- murders %>% 
+  filter(sex == "Female") %>%
+  summarize(average = mean(murders), standard_deviation = sd(murders))
+
+#Calculate the average population rates
+
+us_murder_rate <- murders %>%
+  summarize(rate = sum(total) / sum(population) * 100000)
+us_murder_rate
+
+#Quantile Summary
+murders %>% 
+  filter(state == "OH") %>%
+  summarize(median_min_max = quantile(murders, c(0.5, 0, 1)))
+
+#Group by methods
+murders %>% 
+  group_by(region) %>%
+  summarize(median_min_max(rate))
+
+#Pull certain Data
+us_murder_rate <- murders %>% 
+  summarize(rate = sum(total) / sum(population) * 100000) %>%
+  pull(rate)
+
+us_murder_rate
+
+#Sorting the data
+murders %>%
+  arrange(population) %>%
+  head()
+#Sorting by rates as order of descending manner
+murders %>% 
+  arrange(rate) %>%
+  head()
+
+#Capture the top
+murders %>% top_n(5, rate)
+
+#Compare Different Groups
+murders %>% 
+  mutate(group = case_when(
+    abb %in% c("ME", "NH", "VT", "MA", "RI", "CT") ~ "New England",
+    abb %in% c("WA", "OR", "CA") ~ "West Coast",
+    region == "South" ~ "South",
+    TRUE ~ "Other")) %>%
+  group_by(group) %>%
+  summarize(rate = sum(total) / sum(population) * 10^5) 
